@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en" data-theme="{{ session.get('theme', 'light') }}">
+<head>
+<meta charset="utf-8">
+<title>Raw Email</title>
+
+<style>
+:root {
+  --bg:#f7f9fb; --text:#222; --card:#fff;
+}
+[data-theme="dark"] {
+  --bg:#111; --text:#eee; --card:#1b1b1b;
+}
+
+body {
+  font-family: monospace;
+  background: var(--bg);
+  color: var(--text);
+  margin:0;
+  padding:20px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.container {
+  max-width: 1000px;
+  margin:auto;
+  background:var(--card);
+  border-radius:8px;
+  padding:20px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.3);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+pre {
+  white-space:pre-wrap;
+  word-break:break-word;
+  font-size:13px;
+  line-height:1.4em;
+  color: var(--text);
+}
+
+.btn {
+  background:#1976D2;
+  color:white;
+  padding:6px 12px;
+  border-radius:6px;
+  text-decoration:none;
+  font-size:13px;
+  margin-right:8px;
+}
+
+/* theme toggle */
+.theme-toggle {
+  float:right;
+  cursor:pointer;
+  padding:6px 12px;
+  border-radius:6px;
+  background:#1976D2;
+  color:white;
+  font-size:13px;
+  user-select:none;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="theme-toggle" id="themeToggle">
+    <svg id="iconLight" width="16" height="16" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="5" stroke="currentColor" fill="none"/>
+      <line x1="12" y1="1" x2="12" y2="3" stroke="currentColor"/>
+      <line x1="12" y1="21" x2="12" y2="23" stroke="currentColor"/>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" stroke="currentColor"/>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" stroke="currentColor"/>
+      <line x1="1" y1="12" x2="3" y2="12" stroke="currentColor"/>
+      <line x1="21" y1="12" x2="23" y2="12" stroke="currentColor"/>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" stroke="currentColor"/>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" stroke="currentColor"/>
+    </svg>
+    <svg id="iconDark" width="16" height="16" viewBox="0 0 24 24" style="display:none;">
+      <path d="M21 12.79A9 9 0 0111.21 3 7 7 0 0012 17a7 7 0 009-4.21z" stroke="currentColor" fill="none"/>
+    </svg>
+    Theme
+</div>
+
+<div class="container">
+  <a class="btn" href="/message/{{ msg_id }}">Back</a>
+
+  <h3>Raw Message</h3>
+
+  {% if raw %}
+  <pre>{{ raw | e }}</pre>
+  {% else %}
+  <p>(Raw email not found)</p>
+  {% endif %}
+</div>
+
+<script>
+// === EVENT-BASED THEME SYNC (same as layout.html)
+(function(){
+  const root = document.documentElement;
+  const iconLight = document.getElementById("iconLight");
+  const iconDark = document.getElementById("iconDark");
+  const themeToggle = document.getElementById("themeToggle");
+
+  function applyTheme(theme) {
+    root.setAttribute("data-theme", theme);
+    localStorage.setItem("theme", theme);
+    iconLight.style.display = (theme === "light") ? "none" : "block";
+    iconDark.style.display = (theme === "dark") ? "none" : "block";
+  }
+
+  function toggleTheme() {
+    const current = root.getAttribute("data-theme") || "light";
+    const newTheme = current === "light" ? "dark" : "light";
+    applyTheme(newTheme);
+    window.dispatchEvent(new CustomEvent("themeChanged", { detail: { theme: newTheme } }));
+  }
+
+  // Initialize
+  const saved = localStorage.getItem("theme");
+  if (saved) applyTheme(saved);
+
+  // Button click handler
+  themeToggle.addEventListener("click", toggleTheme);
+
+  // Listen to global changes
+  window.addEventListener("themeChanged", (ev) => {
+    if (ev.detail && ev.detail.theme) applyTheme(ev.detail.theme);
+  });
+
+  // Also listen to localStorage changes (multi-tab sync)
+  window.addEventListener("storage", (ev) => {
+    if (ev.key === "theme" && ev.newValue) applyTheme(ev.newValue);
+  });
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "updated_at": "2025-11-09T21:21:18.375675",
+  "feeds": {
+    "update_brands.py": {
+      "status": "success",
+      "attempts": 1,
+      "last_update": "2025-11-09T21:18:46.759283",
+      "duration": 3.0107064247131348
+    },
+    "update_threat_domains.py": {
+      "status": "success",
+      "attempts": 1,
+      "last_update": "2025-11-09T21:18:52.746744",
+      "duration": 8.995168209075928
+    },
+    "update_whois.py": {
+      "status": "failed (code 3221225786)",
+      "attempts": 2,
+      "last_update": "2025-11-09T21:21:18.374675",
+      "duration": 104.03692317008972
+    }
+  }
+}

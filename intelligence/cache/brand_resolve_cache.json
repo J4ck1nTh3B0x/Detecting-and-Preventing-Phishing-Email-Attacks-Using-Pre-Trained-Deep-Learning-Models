@@ -1,0 +1,23 @@
+{
+  "domains": {
+    "dxgnp504.na2.hubspotlinks.com": {
+      "brand": "5",
+      "resolved_at": 1768223953.8695016,
+      "expires": 1770815953.8695016,
+      "source": "fuzzy"
+    },
+    "hs-243656267.s.hubspotemail-na2.net": {
+      "brand": "5",
+      "resolved_at": 1768223953.8734915,
+      "expires": 1770815953.8734915,
+      "source": "fuzzy"
+    },
+    "unitedkingdom.quora.com": {
+      "brand": "ted",
+      "resolved_at": 1768223954.6962914,
+      "expires": 1770815954.6962914,
+      "source": "fuzzy"
+    }
+  },
+  "last_update": 1768223954.6962914
+}

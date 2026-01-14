@@ -1,0 +1,434 @@
+{% extends "layout.html" %}
+{% block title %}Inbox{% endblock %}
+{% block content %}
+
+<style>
+  /* Base Table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    background: var(--card);
+    color: var(--text);
+  }
+
+  th, td {
+    padding: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  tr:hover {
+    background: rgba(0, 0, 0, .08);
+    cursor: pointer;
+  }
+
+  .badge {
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: bold;
+    color: #fff;
+  }
+
+  .badge.phish { background: #d9534f; }
+  .badge.safe { background: #4caf50; }
+  .badge.suspicious { background: #f0ad4e; }
+  .badge.unknown { background: #777; }
+  .badge.analyzing { background: #2196f3; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+
+  /* Top Controls */
+  .top-controls {
+    padding: 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .search-form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    justify-content: center;
+  }
+
+  #searchBox {
+    width: 50%;
+    min-width: 280px;
+    max-width: 600px;
+    padding: 6px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--card);
+    color: var(--text);
+  }
+
+  #searchBox::placeholder {
+    color: var(--text);
+    opacity: 0.5;
+  }
+
+  /* Button Styling */
+  .btn {
+    background: #1976D2;
+    color: #fff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: background 0.15s ease, opacity 0.15s ease;
+  }
+
+  .btn.secondary {
+    background: #555;
+    color: #fff;
+  }
+
+  .btn svg {
+    stroke: currentColor;
+    width: 16px;
+    height: 16px;
+  }
+
+  /* Hover and Active States (adaptive) */
+  [data-theme="light"] .btn:hover {
+    background: #1565c0;
+  }
+
+  [data-theme="dark"] .btn:hover {
+    background: #1e88e5;
+  }
+
+  [data-theme="light"] .btn.secondary:hover {
+    background: #444;
+  }
+
+  [data-theme="dark"] .btn.secondary:hover {
+    background: #777;
+  }
+
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Pager */
+  .pager {
+    padding: 10px;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    color: var(--text);
+  }
+  .active-filter { text-decoration: underline; }
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; align-items: center; justify-content: center; z-index: 1000; }
+  .modal { background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 16px; max-width: 420px; width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,.3); }
+  .modal h3 { margin: 0 0 8px 0; font-size: 18px; }
+  .modal p { margin: 0 0 12px 0; font-size: 14px; opacity: .9; }
+  .modal .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+</style>
+
+<!-- Top Controls -->
+<div class="top-controls">
+  <div>
+  <strong>Inbox</strong>
+
+  <span style="margin-left:12px; font-size:14px; color:var(--text);">
+
+    <a href="{{ url_for('index', label='safe', per_page=per_page) }}" class="filter-link{% if label_filter=='safe' %} active-filter{% endif %}" data-label="safe"
+       style="color:#4CAF50; text-decoration:none;">
+        SAFE: <strong>{{ global_safe_total }}</strong>
+    </a> |
+
+    <a href="{{ url_for('index', label='phish', per_page=per_page) }}" class="filter-link{% if label_filter=='phish' %} active-filter{% endif %}" data-label="phish"
+       style="color:#E53935; text-decoration:none;">
+        PHISH: <strong>{{ global_phish_total }}</strong>
+    </a> |
+
+    <a href="{{ url_for('index', label='maybephish', per_page=per_page) }}" class="filter-link{% if label_filter=='maybephish' %} active-filter{% endif %}" data-label="maybephish"
+       style="color:#FF9800; text-decoration:none;">
+        MAYBEPHISH: <strong>{{ global_maybephish_total }}</strong>
+    </a> |
+
+    <a href="{{ url_for('index', label='unknown', per_page=per_page) }}" class="filter-link{% if label_filter=='unknown' %} active-filter{% endif %}" data-label="unknown"
+       style="color:#777; text-decoration:none;">
+        UNKNOWN: <strong>{{ global_unknown_total }}</strong>
+    </a> |
+
+    <a href="{{ url_for('index', label='analyzing', per_page=per_page) }}" class="filter-link{% if label_filter=='analyzing' %} active-filter{% endif %}" data-label="analyzing"
+       style="color:#2196F3; text-decoration:none;">
+        ANALYZING: <strong>{{ global_analyzing_total }}</strong>
+    </a> |
+
+    <a href="{{ url_for('index', label=None, per_page=per_page) }}" class="filter-link{% if not label_filter %} active-filter{% endif %}" data-label="all"
+       style="color:var(--text); text-decoration:none;">
+        RESET
+    </a>
+  </span>
+
+
+  <br>
+  Total mails: <span id="totalMailCount" title="Click for explanation">
+    {% if global_gmail_total %}
+      {{ global_total_scanned }} / {{ global_gmail_total }}
+    {% else %}
+      {{ global_total_scanned }}
+    {% endif %}
+  </span> emails
+  <span id="liveStatus" style="margin-left:10px; font-size:13px; color:var(--text); display:none; align-items:center;">
+    <svg id="liveSpinner" style="width:14px; height:14px; vertical-align:middle; margin-right:6px;"
+         xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" stroke-opacity="0.3" stroke-width="4"/>
+        <path d="M12 2 a10 10 0 0 1 0 20" stroke-width="4">
+          <animateTransform attributeName="transform" type="rotate"
+                            from="0 12 12" to="360 12 12"
+                            dur="1s" repeatCount="indefinite"/>
+        </path>
+    </svg>
+    <span id="liveStatusText">Syncing...</span>
+  </span>
+</div>
+
+  <form id="searchForm" method="get" action="/" class="search-form">
+    <input type="hidden" name="per_page" value="{{ per_page }}">
+    {% if label_filter %}
+      <input type="hidden" name="label" value="{{ label_filter }}">
+    {% endif %}
+    <input type="text" name="q" value="{{ query }}" placeholder="Search subject, sender" id="searchBox">
+    <button type="submit" class="btn" title="Search">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      Search
+    </button>
+    <button type="button" id="reloadBtn" class="btn secondary" title="Force Reload">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+        <polyline points="23 4 23 10 17 10"></polyline>
+        <polyline points="1 20 1 14 7 14"></polyline>
+        <path d="M3.51 9a9 9 0 0114.13-3.36L23 10M1 14l5.36 5.36A9 9 0 0019.49 15"></path>
+      </svg>
+      Reload
+    </button>
+  </form>
+
+  <select id="perPageSelect">
+    <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
+    <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+    <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+    <option value="-1" {% if per_page == -1 %}selected{% endif %}>All</option>
+  </select>
+</div>
+
+<!-- Phishing warning state (used by inline script below) -->
+<input type="hidden" id="phishWarnEnabled" value="{{ '1' if show_phish_warning else '0' }}">
+<input type="hidden" id="phishWarnAllowDismiss" value="{{ '1' if allow_dismiss_phish_warning else '0' }}">
+
+<!-- Phishing warning modal backdrop -->
+<div id="phishWarnBackdrop" class="modal-backdrop">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="phishWarnTitle">
+    <h3 id="phishWarnTitle">Warning: Viewing phishing results</h3>
+    <p>You're about to view emails labeled as phishing or suspicious. Proceed?</p>
+    <div style="display:none">
+      <input type="hidden" id="phishWarnTarget" value="">
+      <input type="hidden" id="phishWarnLabel" value="">
+    </div>
+    <label style="display:flex;align-items:center;gap:6px;">
+      <input type="checkbox" id="dismissPhishWarnOnce">
+      Don't show this again during this session
+    </label>
+    <div class="actions">
+      <button type="button" id="phishWarnCancel" class="btn secondary">Cancel</button>
+      <button type="button" id="phishWarnProceed" class="btn">Proceed</button>
+    </div>
+  </div>
+  
+</div>
+
+<!-- Table -->
+<table id="inboxTable">
+  <thead>
+    <tr><th>Subject</th><th>Sender</th><th>Date</th><th>Status</th></tr>
+  </thead>
+  <tbody>
+  {% for mail in messages %}
+  <tr class="inbox-row" data-href="{{ url_for('message', msg_id=mail.id) }}">
+    <td>{{ mail.subject or "(No Subject)" }}</td>
+    <td>{{ mail.sender }}</td>
+    <td>{{ mail.date }}</td>
+    <td>
+      {% if mail.prediction_label %}
+        {% set p = mail.prediction_label.lower() %}
+        <span class="badge {{ 'safe' if p=='safe' else 'phish' if p=='phish' else 'suspicious' if p=='maybephish' else 'unknown' if p=='analyzing' else 'unknown' }}">{{ 'ANALYZING...' if p=='analyzing' else p.upper() }}</span>
+      {% else %}
+        <span class="badge unknown">N/A</span>
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<!-- Pager -->
+<div class="pager">
+  <button id="prevBtn" class="btn secondary"
+    {% if not prev_page %}disabled{% endif %}
+    data-url="{% if prev_page %}{{ url_for('index', page=prev_page, per_page=per_page, q=query, label=label_filter) }}{% endif %}">
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2"
+  stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+  <polyline points="15 18 9 12 15 6"></polyline>
+  </svg>
+  Prev
+  </button>
+
+
+  <span>Page {{ page }} / {{ total_pages }} (Total: {{ total }})</span>
+
+  <button id="nextBtn" class="btn secondary"
+    {% if not next_page %}disabled{% endif %}
+    data-url="{% if next_page %}{{ url_for('index', page=next_page, per_page=per_page, q=query, label=label_filter) }}{% endif %}">
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2"
+  stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+  <polyline points="9 18 15 12 9 6"></polyline>
+  </svg>
+  Next
+  </button>
+
+
+<script src="/static/js/inbox.js"></script>
+<script src="/static/js/safe_click.js"></script>
+<script>
+(function(){
+  var enabledEl = document.getElementById('phishWarnEnabled');
+  var allowDismissEl = document.getElementById('phishWarnAllowDismiss');
+  var enabled = enabledEl ? enabledEl.value === '1' : false;
+  var allowDismiss = allowDismissEl ? allowDismissEl.value === '1' : true;
+  var backdrop = document.getElementById('phishWarnBackdrop');
+  var proceedBtn = document.getElementById('phishWarnProceed');
+  var cancelBtn = document.getElementById('phishWarnCancel');
+  var targetEl = document.getElementById('phishWarnTarget');
+  var labelEl = document.getElementById('phishWarnLabel');
+  var dismissOnce = document.getElementById('dismissPhishWarnOnce');
+
+  function openModal(url, label){
+    if (!backdrop) return;
+    targetEl.value = url || '';
+    labelEl.value = label || '';
+    backdrop.style.display = 'flex';
+  }
+  function closeModal(){ if (backdrop) backdrop.style.display = 'none'; }
+
+  document.querySelectorAll('.filter-link').forEach(function(a){
+    a.addEventListener('click', function(ev){
+      try {
+        if (!enabled) return;
+        var label = a.getAttribute('data-label') || '';
+        if (label === 'phish' || label === 'maybephish'){
+          if (allowDismiss && sessionStorage.getItem('suppressPhishWarn') === '1') return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          openModal(a.getAttribute('href'), label);
+        }
+      } catch(e) {}
+    });
+  });
+
+  if (proceedBtn){
+    proceedBtn.addEventListener('click', function(){
+      try {
+        if (allowDismiss && dismissOnce && dismissOnce.checked){
+          sessionStorage.setItem('suppressPhishWarn', '1');
+        }
+      } catch(e) {}
+      var url = targetEl.value || '';
+      if (url) window.location.href = url;
+      closeModal();
+    });
+  }
+  if (cancelBtn){ cancelBtn.addEventListener('click', function(){ closeModal(); }); }
+
+  // Auto-update mail count and filter counts periodically
+  var totalCountEl = document.getElementById('totalMailCount');
+  var lastKnownCount = totalCountEl ? parseInt(totalCountEl.textContent) || 0 : 0;
+  var filterLinks = document.querySelectorAll('.filter-link[data-label]');
+  var lastFilterCounts = {};
+
+  function updateCounts() {
+    // Update total mail count
+    if (totalCountEl) {
+      fetch('/api/live_status')
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+          if (data && typeof data.total_mails === 'number') {
+            var newCount = data.total_mails;
+            if (newCount !== lastKnownCount) {
+              totalCountEl.textContent = newCount;
+              // Briefly highlight when count changes
+              totalCountEl.style.backgroundColor = 'rgba(76, 175, 80, 0.3)';
+              totalCountEl.style.transition = 'background-color 0.3s ease';
+              setTimeout(function(){
+                totalCountEl.style.backgroundColor = '';
+              }, 1000);
+              lastKnownCount = newCount;
+            }
+          }
+        })
+        .catch(function(error) {
+          console.debug('Mail count update failed (expected during sync):', error);
+        });
+    }
+
+    // Update filter counts
+    fetch('/api/filter_counts')
+      .then(function(response) { return response.json(); })
+      .then(function(counts) {
+        if (!counts) return;
+
+        filterLinks.forEach(function(link) {
+          var label = link.getAttribute('data-label');
+          var countEl = link.querySelector('strong');
+          if (!countEl || !label) return;
+
+          var newCount = counts[label] || 0;
+          var lastCount = lastFilterCounts[label] || 0;
+
+          if (newCount !== lastCount) {
+            countEl.textContent = newCount;
+            // Briefly highlight when count changes
+            countEl.style.backgroundColor = 'rgba(33, 150, 243, 0.3)';
+            countEl.style.transition = 'background-color 0.3s ease';
+            setTimeout(function(){
+              countEl.style.backgroundColor = '';
+            }, 1000);
+            lastFilterCounts[label] = newCount;
+          }
+        });
+      })
+      .catch(function(error) {
+        console.debug('Filter counts update failed:', error);
+      });
+  }
+
+  // Update counts every 5 seconds
+  setInterval(updateCounts, 5000);
+
+  // Also update when page becomes visible (user returns to tab)
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+      updateCounts();
+    }
+  });
+})();
+</script>
+{% endblock %}

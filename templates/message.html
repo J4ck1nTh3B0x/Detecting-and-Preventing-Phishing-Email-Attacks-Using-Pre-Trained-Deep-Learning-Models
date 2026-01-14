@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{{ session.get('theme', 'light') }}">
+<head>
+<meta charset="UTF-8">
+<title>{{ subject }}</title>
+
+<style>
+:root {
+    --bg:#f7f9fb; --text:#222; --card:#fff;
+    --safe:#4CAF50; --phish:#E53935; --suspicious:#FF9800; --border:#ddd;
+}
+[data-theme="dark"] {
+    --bg:#121212; --text:#eaeaea; --card:#1e1e1e; --border:#333;
+}
+
+
+html,body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.container {
+    width: 100%;
+    margin: 0 auto;
+    background: var(--card);
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.header-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+h2 { margin: 0; font-size: 20px; }
+.meta { font-size:14px; color:#666; margin-top:6px; }
+
+.badge {
+    padding:3px 10px;
+    border-radius:6px;
+    font-size:13px;
+    font-weight:600;
+    text-transform:uppercase;
+}
+.badge.safe{background:var(--safe);color:#fff}
+.badge.phish{background:var(--phish);color:#fff}
+.badge.suspicious{background:var(--suspicious);color:#fff}
+
+.btn {
+    padding:6px 12px; border-radius:6px; text-decoration:none;
+    background:#1976D2; color:white; margin:0; border:0;
+    cursor:pointer; display:inline-flex; align-items:center; gap:8px;
+}
+.btn.ghost { background:transparent; color:var(--text); border:1px solid var(--border); }
+.btn.secondary { background:#757575; }
+.btn.small { padding:5px 8px; font-size:13px; }
+
+/* action buttons area should be above the email body */
+.action-group {
+    position: relative;
+    z-index: 9999;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* iframe with lower stacking order than action buttons (so buttons are always clickable) */
+iframe {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 0;
+    border: 0;
+    border-radius: 6px;
+    display: block;
+    background: transparent;
+    overflow: hidden;
+}
+
+/* make sure override modal sits on top of everything */
+#overrideModal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 100000; /* very high so modal is never covered */
+    justify-content: center;
+    align-items: center;
+}
+
+
+
+.raw-box {
+    display:none;
+    border:1px solid var(--border);
+    background:var(--bg);
+    padding:10px;
+    border-radius:8px;
+    margin-top:10px;
+    white-space:pre-wrap;
+    word-break:break-word;
+    color:var(--text);
+}
+
+.risk-section { margin-top:20px; border-top:1px solid var(--border); padding-top:15px; }
+
+table { border-collapse:collapse; width:100%; margin-top:10px; font-size:14px; table-layout:fixed; }
+th,td { border:1px solid var(--border); padding:8px 10px; word-break:break-all; text-align:left; vertical-align:top; }
+th { background: rgba(0,0,0,0.03); font-weight:600; }
+a { color: inherit; word-break:break-word; }
+a.warn-link { color: var(--phish); text-decoration:underline; }
+
+.attachment-list { list-style:none; padding-left:0; margin:8px 0 0 0; }
+.attachment-list li { margin:6px 0; }
+
+.small-meta { font-size:12px; color:#777; margin-left:6px; }
+
+/* ===========================
+   CLEAN FULL-SCREEN PREVIEW
+   =========================== */
+
+#previewModal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+}
+
+/* backdrop */
+#previewBackdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+}
+
+/* center content — no borders, no shadow, no rounded */
+#previewContent {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    max-width: 98%;
+    max-height: 98%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    padding: 0;
+}
+
+/* the preview box wrapper */
+#previewContainer {
+    max-width: 100%;
+    max-height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* MEDIA FIX — force correct ratio */
+#previewContainer img,
+#previewContainer video,
+#previewContainer embed,
+#previewContainer iframe {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+}
+
+#previewContainer audio {
+    display: block;
+    width: 100%;
+    max-width: 420px;
+
+    min-height: 48px;      /* the key fix */
+    height: 48px;          /* ensures player is visible */
+
+    background: transparent;
+}
+
+
+/* simple close button (no weird circle) */
+#closePreviewBtn {
+    position: absolute;
+    top: 12px;
+    right: 20px;
+    background: transparent;
+    font-size: 28px;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+#closePreviewBtn:hover {
+    color: #ccc;
+}
+
+@media (max-width: 900px) {
+  .container { padding:14px; }
+  iframe { min-height: 60vh; }
+}
+
+#overrideModal { position:fixed !important; z-index:999999 !important; }
+
+
+</style>
+</head>
+<body>
+
+<div class="container" data-is-phish="{{ '1' if is_phish else '0' }}">
+
+  <div class="header-row">
+    <div style="flex:1 1 auto;">
+      <h2>{{ subject }}</h2>
+      <div class="meta"><strong>From:</strong> {{ sender }} <span class="small-meta">|</span> <strong>Date:</strong> {{ date }}</div>
+    </div>
+
+    <div class="action-group">
+      <button id="backInboxBtn" class="btn ghost small">Back to Inbox</button>
+      <button id="openFullBtn" class="btn small" style="display:none;">Open Full Page</button>
+    </div>
+  </div>
+
+  <div>
+    <strong>Prediction:</strong>
+    <span class="badge {{ prediction_label }}">{{ prediction_label|upper }}</span>
+    <span class="small-meta">Score: {{ "%.3f"|format(prediction_score or 0) }}</span>
+    <div style="margin-top:8px;"><strong>Reason:</strong> <span id="reason">{{ explanation }}</span></div>
+  </div>
+
+  <div style="margin-top:12px; position:relative; z-index:50;">
+    <a href="{{ url_for('original_email', msg_id=msg_id) }}" class="btn">Show Original</a>
+    <a href="{{ url_for('download', msg_id=msg_id) }}" class="btn">Download .eml</a>
+
+    {% if html_body %}
+      <button class="btn secondary internal-nav" id="toggleRawBtn">Show Raw</button>
+    {% endif %}
+
+    <button class="btn internal-nav" id="rescanBtn" data-msg="{{ msg_id }}">Rescan Email</button>
+
+    <!-- USER MANUAL OVERRIDE BUTTON -->
+    <button class="btn secondary" id="overrideBtn" data-msg="{{ msg_id }}">
+      Report False Classification
+    </button>
+    
+
+  </div>
+
+  {% if html_body %}
+  <div style="margin-top:14px;">
+    <iframe
+      id="renderFrame"
+      data-msg="{{ msg_id }}"
+      sandbox=" allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+      aria-label="Email body"
+      style="position:relative; z-index:1;"
+    ></iframe>
+  </div>
+  {% endif %}
+
+  <div id="rawBox" class="raw-box" {% if not html_body %}style="display:block;"{% endif %}>
+    {{ body }}
+  </div>
+
+  {% if attachments and attachments|length > 0 %}
+  <div class="risk-section" id="attachmentsSection">
+    <h3>Attachments ({{ attachments|length }})</h3>
+    <ul class="attachment-list">
+      {% for a in attachments %}
+      <li>
+        <span>{{ a.filename }}</span>
+        <span class="small-meta"> — {{ (a.size / 1024)|round(1) }} KB</span>
+        {% set aa = attachment_analysis_map.get(a.attachmentId) if attachment_analysis_map else None %}
+        {% if aa %}
+          {% set cls = 'safe' if aa.verdict == 'clean' else ('phish' if aa.verdict == 'malicious' else ('suspicious' if aa.verdict == 'error' else 'unknown')) %}
+          <span class="badge {{ cls }}" title="{{ (aa.warnings or [])|join('; ') }}">{{ (aa.verdict or 'unknown')|upper }}</span>
+          {% if aa.vt %}
+            {% set vtv = aa.vt.verdict or 'unknown' %}
+            {% set vtcls = 'safe' if vtv == 'clean' else ('phish' if vtv == 'malicious' else 'suspicious') %}
+            {% set s = aa.vt.stats or {} %}
+            <span class="badge {{ vtcls }}" title="VirusTotal: malicious={{ s.get('malicious', 0) }}, suspicious={{ s.get('suspicious', 0) }}, harmless={{ s.get('harmless', 0) }}, undetected={{ s.get('undetected', 0) }}">VT {{ vtv|upper }}</span>
+          {% endif %}
+        {% else %}
+          <span class="badge unknown" title="Analysis not available">UNKNOWN</span>
+        {% endif %}
+        <a class="btn small download-attachment" href="{{ url_for('download_attachment', msg_id=msg_id, attachment_id=a.attachmentId) }}">Download</a>
+        <button class="btn ghost small preview-btn"
+                data-msg="{{ msg_id }}"
+                data-attachment="{{ a.attachmentId }}"
+                data-filename="{{ a.filename }}">
+          Preview
+        </button>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <!-- New Clean Fullscreen Modal -->
+  <div id="previewModal">
+    <div id="previewBackdrop"></div>
+    <div id="previewContent">
+      <div id="previewContainer">
+    </div>
+    </div>
+  </div>
+
+  {% endif %}
+
+  {% if show_link_table %}
+    {% if risk_links and risk_links|length > 0 %}
+    <div class="risk-section">
+      <h3>Links detected: {{ risk_links|length }}</h3>
+      <table>
+        <tr><th>#</th><th>URL</th><th>Domain</th><th>Status</th></tr>
+        {% for r in risk_links %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td><a class="warn-link" href="{{ r.url }}">{{ r.url }}</a></td>
+          <td>{{ r.domain }}</td>
+          <td><span class="badge {{ r.result }}">{{ r.result }}</span></td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+    {% endif %}
+  {% endif %}
+
+
+<!-- MANUAL OVERRIDE POPUP (PREVIEW-MODAL STYLE) -->
+<div id="overrideModal" style="display:none; position:fixed; inset:0; z-index:99999;">
+
+  <!-- backdrop -->
+  <div id="overrideBackdrop"
+       style="position:absolute; inset:0; background:rgba(0,0,0,0.75);">
+  </div>
+
+  <!-- centered content (same as preview modal) -->
+  <div id="overrideContent"
+       style="position:absolute; top:50%; left:50%;
+              transform:translate(-50%, -50%);
+              max-width:98%; max-height:98%;
+              display:flex; align-items:center; justify-content:center;
+              background:transparent; border:none; padding:0;">
+
+      <!-- modal content box -->
+      <div id="overrideBox"
+           style="max-width:100%; max-height:100%;
+                  background:var(--card);
+                  padding:18px;
+                  border-radius:10px;
+                  box-shadow:0 2px 10px rgba(0,0,0,0.4);
+                  color:var(--text);
+                  font-size:14px;
+                  width:320px;">
+
+          <h3 style="margin-top:0;">Fix Classification</h3>
+
+          <p>Current status: <strong>{{ prediction_label|upper }}</strong></p>
+          <p>Select what this email really is:</p>
+
+          <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px;">
+              <button class="btn" id="overrideToSafe">Mark as SAFE</button>
+              <button class="btn" id="overrideToPhish">Mark as PHISH</button>
+          </div>
+
+          <button class="btn ghost" id="overrideCancel"
+                  style="margin-top:12px; width:100%;">
+              Cancel
+          </button>
+
+      </div>
+
+  </div>
+
+</div>
+
+
+
+</div>
+
+<script src="/static/js/theme.js" nonce="{{ g.script_nonce }}"></script>
+<script src="/static/js/safe_click.js" nonce="{{ g.script_nonce }}"></script>
+<script src="/static/js/message.js" nonce="{{ g.script_nonce }}"></script>
+
+</body>
+</html>

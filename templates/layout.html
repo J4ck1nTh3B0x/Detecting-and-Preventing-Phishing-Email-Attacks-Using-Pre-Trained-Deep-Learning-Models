@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en" data-theme="{{ session.get('theme', 'light') }}">
+<head>
+<meta charset="utf-8">
+<title>{% block title %}{% endblock %}</title>
+
+<style>
+:root {
+    --bg:#f7f9fb; 
+    --text:#222; 
+    --card:#fff;
+    --border:#ddd;
+}
+[data-theme="dark"] {
+    --bg:#121212; 
+    --text:#eaeaea; 
+    --card:#1e1e1e;
+    --border:#333;
+}
+
+html, body {
+    height:100%;
+    margin:0;
+    padding:0;
+}
+
+body {
+    background:var(--bg);
+    color:var(--text);
+    font-family:Arial, sans-serif;
+}
+
+/* container wrapper used in multiple pages */
+.wrapper {
+    max-width:1200px;
+    margin:auto;
+    padding:20px;
+    box-sizing:border-box;
+}
+
+/* global button style */
+.btn {
+    padding:6px 12px;
+    border-radius:6px;
+    border:0;
+    cursor:pointer;
+    background:#1976D2;
+    color:white;
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+}
+
+.btn.ghost {
+    background:transparent;
+    border:1px solid var(--border);
+    color:var(--text);
+}
+
+.btn.small {
+    padding:4px 8px;
+    font-size:13px;
+}
+
+/* global table style */
+table {
+    width:100%;
+    border-collapse:collapse;
+    margin-top:10px;
+    font-size:14px;
+}
+
+th, td {
+    border:1px solid var(--border);
+    padding:8px 10px;
+    word-break:break-word;
+}
+
+th {
+    background:rgba(0,0,0,0.06);
+    font-weight:600;
+}
+
+/* safe-click styling */
+.safe-click-warn {
+    color:var(--text);
+    background:rgba(255, 152, 0, 0.2);
+    padding:2px 5px;
+    border-radius:4px;
+}
+
+/* Header styling */
+.header {
+    background:var(--card);
+    border-bottom:1px solid var(--border);
+    padding:12px 20px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    box-shadow:0 1px 3px rgba(0,0,0,0.1);
+}
+
+.header-left {
+    display:flex;
+    align-items:center;
+}
+
+.header-title {
+    font-size:18px;
+    font-weight:600;
+    color:var(--text);
+    text-decoration:none;
+}
+
+.header-right {
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+.user-info {
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.user-avatar {
+    width:32px;
+    height:32px;
+    border-radius:50%;
+    border:1px solid var(--border);
+}
+
+.user-name {
+    font-size:14px;
+    color:var(--text);
+    font-weight:500;
+}
+
+.logout-btn, .login-btn {
+    padding:6px 12px;
+    border-radius:6px;
+    border:1px solid var(--border);
+    background:var(--card);
+    color:var(--text);
+    text-decoration:none;
+    font-size:14px;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    cursor:pointer;
+    transition:background 0.2s;
+}
+
+.logout-btn:hover, .login-btn:hover {
+    background:rgba(0,0,0,0.05);
+}
+
+[data-theme="dark"] .logout-btn:hover,
+[data-theme="dark"] .login-btn:hover {
+    background:rgba(255,255,255,0.1);
+}
+</style>
+
+{% block head %}{% endblock %}
+</head>
+
+<body>
+
+<!-- Header with user info and logout -->
+<div class="header">
+    <div class="header-left">
+        <a href="{{ url_for('index') }}" class="header-title">Phishing Detection System</a>
+    </div>
+    <div class="header-right">
+        {% if session.get('user_email') %}
+        <div class="user-info">
+            {% if session.get('user_picture') %}
+            <img src="{{ session.user_picture }}" alt="User" class="user-avatar">
+            {% endif %}
+            <span class="user-name">{{ session.get('user_name', session.get('user_email', 'User')) }}</span>
+            <a href="{{ url_for('logout') }}" class="logout-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+                Logout
+            </a>
+        </div>
+        {% else %}
+        <a href="{{ url_for('login') }}" class="login-btn">Login</a>
+        {% endif %}
+    </div>
+</div>
+
+{% block content %}{% endblock %}
+
+<script src="/static/js/theme.js"></script>
+<script src="/static/js/safe_click.js"></script>
+
+{% block scripts %}{% endblock %}
+
+</body>
+</html>

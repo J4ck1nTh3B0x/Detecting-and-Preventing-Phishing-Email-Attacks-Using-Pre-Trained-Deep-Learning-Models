@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Original Message</title>
+  <style>
+    :root {
+      --bg:#111; --card:#1b1b1b; --text:#eee; --accent:#1a73e8;
+    }
+    [data-theme="light"] {
+      --bg:#f7f9fb; --card:#fff; --text:#222;
+    }
+    body {
+      font-family: monospace;
+      background: var(--bg);
+      color: var(--text);
+      padding: 20px;
+      margin: 0;
+    }
+    .container {
+      max-width: 1000px;
+      margin: auto;
+      background: var(--card);
+      padding: 18px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+    pre {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.4em;
+    }
+    .btn {
+      background: var(--accent);
+      color: #fff;
+      padding: 6px 10px;
+      border-radius: 6px;
+      text-decoration: none;
+      margin-right: 8px;
+      display: inline-block;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      border: none;
+      cursor: pointer;
+    }
+    .btn:hover { opacity: 0.9; }
+    .toolbar { margin-bottom: 12px; }
+    .content { margin-top: 15px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="toolbar">
+      <a class="btn" href="/download/{{ msg_id }}">Download .eml</a>
+      <a class="btn" href="/message/{{ msg_id }}">Back</a>
+      {% if view_type != "raw" %}
+        <a class="btn" href="/original/{{ msg_id }}?view=raw">Show Raw</a>
+      {% endif %}
+      {% if view_type != "decoded" %}
+        <a class="btn" href="/original/{{ msg_id }}?view=decoded">Show Decoded Text</a>
+      {% endif %}
+      {% if view_type != "rendered" %}
+        <a class="btn" href="/original/{{ msg_id }}?view=rendered">Show Rendered HTML</a>
+      {% endif %}
+    </div>
+
+    <div class="content">
+      {% if raw %}
+      <pre>{{ raw | e }}</pre>
+      {% else %}
+      <p style="color:#888;">(No content to display)</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <script>
+    // Optional dark/light theme toggle based on localStorage
+    const theme = localStorage.getItem('theme') || 'dark';
+    if (theme === 'light') document.documentElement.setAttribute('data-theme','light');
+  </script>
+</body>
+</html>
